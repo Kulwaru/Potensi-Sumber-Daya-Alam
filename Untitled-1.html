@@ -1,83 +1,209 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peta Kalurahan Kulwaru</title>
 
-    <!-- leaflet css -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
-      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
-      crossorigin=""
-    />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
 
-    <!-- leaflet js -->
-    <script
-      src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
-      integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
-      crossorigin=""
-    ></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
 
-    <title>Leaflet Map with Sawah GeoJSON</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    #map {
+      height: 100vh;
+      width: 100%;
+      position: relative;
+    }
 
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-      }
+    .legend {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3);
+      font-size: 13px;
+      z-index: 1000;
+    }
 
-      #map {
-        height: 100vh;
-        width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="map"></div>
-  </body>
+    .legend-title {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .legend-color {
+      width: 18px;
+      height: 12px;
+      margin-right: 8px;
+      border: 1px solid #777;
+    }
+
+    /* Judul Peta Kecil di Kiri Atas */
+    .map-title {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(255,255,255,0.9);
+      padding: 8px 12px;
+      font-size: 16px; /* Dibuat sedikit lebih besar */
+      font-weight: bold;
+      border-radius: 4px;
+      z-index: 1000;
+      box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    /* Zoom Control Pindah ke Bawah Kanan */
+    .leaflet-bottom.leaflet-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    /* Tampilan Zoom Level */
+    .zoom-level-display {
+      background: white;
+      padding: 4px 8px;
+      font-size: 12px;
+      margin-top: 4px;
+      border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map">
+    <div class="map-title">Peta Kalurahan Kulwaru</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-title">Keterangan</div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: #add8e6; border-style: dashed;"></div>
+      <span>Area Pertanian & Perkebunan</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: #e41a1c;"></div>
+      <span>Batas Administrasi per RT</span>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <script>
-    // basic leaflet map with setview
-    var map = L.map("map").setView([-7.901589, 110.122956], 15); // atur ke koordinat awal sesuai kebutuhan
+    var map = L.map("map", {
+      center: [-7.9007, 110.1240],
+      zoom: 15.9,
+      zoomControl: false
+    });
 
-    // OpenStreetMap base layer
-    var osmMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Load sawah.geojson
-    fetch("./data/sawah.geojson") 
-      .then((response) => response.json())
-      .then((data) => {
-        L.geoJSON(data, {
-          style: function (feature) {
-            return {
-              color: "black",
-              weight: 2,
-              fillOpacity: 0.5,
-              fillColor: "#" + Math.floor(Math.random() * 16777215).toString(16),
-            };
-          },
-          onEachFeature: function (feature, layer) {
-            // Edit sesuai atribut di file sawah.geojson
-            const props = feature.properties;
-            let popupContent = "<h3>Informasi Sawah</h3>";
-
-            // Tampilkan semua atribut jika tidak tahu nama propertinya
-            for (let key in props) {
-              popupContent += `<strong>${key}:</strong> ${props[key]}<br/>`;
-            }
-
-            layer.bindPopup(popupContent);
-          },
-        }).addTo(map);
-      })
-      .catch((error) => {
-        console.error("Gagal memuat sawah.geojson:", error);
+    const zoomDisplay = L.control({ position: 'bottomright' });
+    zoomDisplay.onAdd = function () {
+      const div = L.DomUtil.create('div', 'zoom-level-display');
+      div.innerHTML = `Zoom: ${map.getZoom()}`;
+      map.on('zoomend', function () {
+        div.innerHTML = `Zoom: ${map.getZoom()}`;
       });
+      return div;
+    };
+    zoomDisplay.addTo(map);
+
+    var satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "Esri", maxZoom: 20 }
+    );
+    var osm = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+        maxZoom: 22
+      }
+    );
+
+    satellite.addTo(map);
+
+    const baseLayers = {
+      "Citra Satelit": satellite,
+      "OpenStreetMap": osm
+    };
+
+    function getRTColor(rt) {
+      const colors = [
+        '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+        '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5'
+      ];
+      return colors[rt % colors.length];
+    }
+
+    const batasAdmLayer = L.layerGroup();
+    fetch('geojson/Batas Adm Kulwaru.geojson')
+      .then(res => res.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: feature => ({
+            color: getRTColor(feature.properties.RT),
+            weight: 2,
+            fillOpacity: 0.15
+          }),
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties;
+            layer.bindPopup(
+              `<strong>Batas Administrasi</strong><br>` +
+              `Dusun: ${p.Dusun}<br>RW: ${p.RW}<br>RT: ${p.RT}<br>Luas: ${p.Luas} ha`
+            );
+          }
+        }).addTo(batasAdmLayer);
+      });
+
+    const sawahLayer = L.layerGroup();
+    fetch('geojson/sawah.geojson')
+      .then(res => res.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: {
+            color: '#add8e6',
+            weight: 1,
+            dashArray: '4,3',
+            fillColor: '#add8e6',
+            fillOpacity: 0.3
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            const luas = props["Luas (Ha)"] || 0;
+            layer.bindPopup(
+              `<strong>Area Pertanian & Perkebunan</strong><br>` +
+              `Pemilik: ${props.pemilik || "-"}<br>` +
+              `Luas: ${luas} ha`
+            );
+          }
+        }).addTo(sawahLayer);
+      });
+
+    const overlayMaps = {
+      "Batas Administrasi": batasAdmLayer,
+      "Area Pertanian & Perkebunan": sawahLayer
+    };
+
+    L.control.layers(baseLayers, overlayMaps, { collapsed: false }).addTo(map);
+    batasAdmLayer.addTo(map);
   </script>
+</body>
 </html>
